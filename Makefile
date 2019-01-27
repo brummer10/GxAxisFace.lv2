@@ -1,32 +1,33 @@
 	
 	STRIP ?= strip
-	# check if user is root
-	user = $(shell whoami)
-	ifeq ($(user),root)
-	INSTALL_DIR = /usr/lib/lv2
-	else 
-	INSTALL_DIR = ~/.lv2
-	endif
+	INSTALL_DIR ?= /usr/lib/lv2
+	SSE_CFLAGS =
 
-	# check CPU and supported optimization flags
-	ifneq ($(shell cat /proc/cpuinfo | grep sse3 ) , )
-		SSE_CFLAGS = -msse3 -mfpmath=sse
-	else ifneq ($(shell cat /proc/cpuinfo | grep sse2 ) , )
-		SSE_CFLAGS = -msse2 -mfpmath=sse
-	else ifneq ($(shell cat /proc/cpuinfo | grep sse ) , )
-		SSE_CFLAGS = -msse -mfpmath=sse
-		else ifneq ($(shell cat /proc/cpuinfo | grep ARM ) , )
-		ifneq ($(shell cat /proc/cpuinfo | grep ARMv7 ) , )
-			ifneq ($(shell cat /proc/cpuinfo | grep vfpd32 ) , )
-				SSE_CFLAGS = -march=armv7-a -mfpu=vfpv3 
-			else ifneq ($(shell cat /proc/cpuinfo | grep vfpv3 ) , )
-				SSE_CFLAGS = -march=armv7-a -mfpu=vfpv3
-			endif
-		else
-			ARMCPU = "YES"
+	ifneq ($(DONTASKPROCFILES),true)
+		# check if user is root
+		user = $(shell whoami)
+		ifneq ($(user),root)
+			INSTALL_DIR = ~/.lv2
 		endif
-	else
-		SSE_CFLAGS =
+
+		# check CPU and supported optimization flags
+		ifneq ($(shell cat /proc/cpuinfo | grep sse3 ) , )
+			SSE_CFLAGS = -msse3 -mfpmath=sse
+		else ifneq ($(shell cat /proc/cpuinfo | grep sse2 ) , )
+			SSE_CFLAGS = -msse2 -mfpmath=sse
+		else ifneq ($(shell cat /proc/cpuinfo | grep sse ) , )
+			SSE_CFLAGS = -msse -mfpmath=sse
+			else ifneq ($(shell cat /proc/cpuinfo | grep ARM ) , )
+			ifneq ($(shell cat /proc/cpuinfo | grep ARMv7 ) , )
+				ifneq ($(shell cat /proc/cpuinfo | grep vfpd32 ) , )
+					SSE_CFLAGS = -march=armv7-a -mfpu=vfpv3
+				else ifneq ($(shell cat /proc/cpuinfo | grep vfpv3 ) , )
+					SSE_CFLAGS = -march=armv7-a -mfpu=vfpv3
+				endif
+			else
+				ARMCPU = "YES"
+			endif
+		endif
 	endif
 
 	# set bundle name
@@ -37,8 +38,8 @@
 	CXXFLAGS += -I. -I./dsp -I./plugin -fPIC -DPIC -O2 -Wall \
 	 -funroll-loops -ffast-math -fomit-frame-pointer -fstrength-reduce \
 	 -fdata-sections -Wl,--gc-sections $(SSE_CFLAGS)
+	GUI_LDFLAGS = $(LDFLAGS) -I./gui -shared -lm `pkg-config --cflags --libs cairo` -L/usr/X11/lib -lX11
 	LDFLAGS += -I. -shared -lm 
-	GUI_LDFLAGS += -I./gui -shared -lm `pkg-config --cflags --libs cairo` -L/usr/X11/lib -lX11
 	# invoke build files
 	OBJECTS = plugin/$(NAME).cpp 
 	GUI_OBJECTS = gui/$(NAME)_x11ui.c
@@ -75,9 +76,9 @@ endif
    #@build resource object files
 $(RES_OBJECTS) : gui/pedal.png gui/pswitch_on.png gui/pswitch_off.png
 	@echo $(LGREEN)"generate resource files,"$(NONE)
-	-@cd ./gui && ld -r -b binary pedal.png -o pedal.o
-	-@cd ./gui && ld -r -b binary pswitch_on.png -o pswitch_on.o
-	-@cd ./gui && ld -r -b binary pswitch_off.png -o pswitch_off.o
+	-@cd ./gui && $(LD) -r -b binary pedal.png -o pedal.o
+	-@cd ./gui && $(LD) -r -b binary pswitch_on.png -o pswitch_on.o
+	-@cd ./gui && $(LD) -r -b binary pswitch_off.png -o pswitch_off.o
 
 clean :
 	@rm -f $(NAME).so
