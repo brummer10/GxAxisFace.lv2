@@ -613,9 +613,10 @@ static void send_controller_event(gx_AxisFaceUI *ui, int controller) {
 static void check_value_changed(gx_AxisFaceUI *ui, int i, float* value) {
 	if(fabs(*(value) - ui->controls[i].adj.value)>=0.00001) {
 		ui->controls[i].adj.value = *(value);
-		if ( ui->block_event != ui->controls[i].port)
+		if (ui->block_event != ui->controls[i].port)
 			ui->write_function(ui->controller,ui->controls[i].port,sizeof(float),0,value);
 		send_controller_event(ui, i);
+		ui->block_event = -1;
 	}
 }
 
